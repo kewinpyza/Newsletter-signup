@@ -1,12 +1,15 @@
 //jshint esversion: 6
 
 const express = require("express");
+const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
 const request = require("request");
 const https = require("https");
 const mailchimp = require("@mailchimp/mailchimp_marketing");
 
+dotenv.config(); // gets the .env data for use with process.env.
 const app = express();
+const port = process.env.PORT || 3000;
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -16,16 +19,15 @@ app.get("/", function (req, res) {
 });
 
 mailchimp.setConfig({
-  apiKey: "69d4b7a7afa882ef764e07cc6c4aafd1-us11",
-  server: "us11",
+  apiKey: process.env.MAILCHIMP_APIKEY,
+  server: process.env.MAILCHIMP_SERVER,
 });
 
-app.post("/", function (req, res) {
+app.post("/", (req, res) => {
   const firstName = req.body.fName;
   const lastName = req.body.lName;
   const email = req.body.email;
   console.log(firstName, lastName, email);
-  const listID = "be9edef388";
 
   const subscribingUser = {
     firstName: firstName,
@@ -35,14 +37,17 @@ app.post("/", function (req, res) {
 
   const run = async () => {
     try {
-      const response = await mailchimp.lists.addListMember(listID, {
-        email_address: subscribingUser.email,
-        status: "subscribed",
-        merge_fields: {
-          FNAME: subscribingUser.firstName,
-          LNAME: subscribingUser.lastname,
-        },
-      });
+      const response = await mailchimp.lists.addListMember(
+        process.env.MAILCHIMP_LISTID,
+        {
+          email_address: subscribingUser.email,
+          status: "subscribed",
+          merge_fields: {
+            FNAME: subscribingUser.firstName,
+            LNAME: subscribingUser.lastName,
+          },
+        }
+      );
       console.log(response);
       res.sendFile(__dirname + "/success.html");
     } catch (err) {
@@ -54,16 +59,10 @@ app.post("/", function (req, res) {
   run();
 });
 
-app.post("/failure", function (req, res) {
+app.post("/failure", (req, res) => {
   res.redirect("/");
 });
 
-app.listen(process.env.DB_URL || 3000, function () {
-  console.log("Server is running on port 3000");
+app.listen(port, () => {
+  console.log(`Server is running on port ${port} at localhost:${port}`);
 });
-
-// API KEY
-// 69d4b7a7afa882ef764e07cc6c4aafd1-us11
-
-// List ID
-// be9edef388
